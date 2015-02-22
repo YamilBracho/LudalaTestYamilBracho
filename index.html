@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Test App</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+	
+	<link rel="stylesheet" href="./bootstrap-3.3.2-dist/css/bootstrap.min.css" >
+	
+	<script src="./js/jquery-1.11.2.min.js"></script>
+	<script src="./bootstrap-3.3.2-dist/js/bootstrap.min.js"></script>
+	<script src="./js/underscore-min.js"></script>
+	
+	<style>
+		.mygrid-wrapper-div {
+			border: solid red 3px;
+			overflow: scroll;
+			height: 400px;
+		}	
+	</style>
+	<script type="text/javascript">
+		var gCompiled;
+		var gRefreshEntertaimentFlag = 1;
+		var gRefreshTechFlag = 1;
+
+		$(document).ready(function () {
+			var template = $("#template").html()
+			gCompiled = _.template(template);
+			
+			$("#btnRefreshNews").on("click", function (e) {
+			   load_news();
+			});
+			
+			$("#btnRefreshEntertaiment").on("click", function (e) {
+			   load_entertaiment();
+			});
+
+			$("#btnRefreshTechNews").on("click", function (e) {
+			   load_tech_news();
+			});
+
+			$('a[data-toggle="tab"]').on("shown.bs.tab", function (e) {
+				var currentTab = $(".nav-tabs .active").text();
+				
+				$("#news").hide();
+				$("#entertaiment").hide();
+				$("#tech_news").hide();
+				
+				if (currentTab == 'News') {
+					$("#news").show();
+				}
+
+			    if (currentTab == "Entertainment") {
+			      if (gRefreshEntertaimentFlag == 1) {
+				      $("#btnRefreshEntertaiment").trigger("click");
+					  gRefreshEntertaimentFlag = 0;
+				  } else {
+				    $("#entertaiment").show();
+				  } 	
+			   }
+			   
+			   if (currentTab =="Tech News") {
+			      if (gRefreshTechFlag == 1) {
+					$("#btnRefreshTechNews").trigger("click");
+					gRefreshTechFlag = 0;
+				  } else {	
+					$("#tech_news").show();
+				  }
+			   }
+			});
+			
+			load_news();
+		});
+		
+	function load_news() {
+			var strDiv = "news";
+			showWait(strDiv, true);
+			$.get( "http://localhost/ludala/rssController.php?rss=news", function (response) {
+				var data = eval( "(" + response + ")");
+				refreshNews("news_content", data);
+				showWait(strDiv, false);
+			});	
+		}
+		
+		function load_entertaiment() {
+		    var strDiv = "entertaiment";
+			showWait(strDiv, true);
+			$.ajax({
+				type: "GET",
+				dataType: "JSON",
+				url: "http://localhost/ludala/rssController.php?rss=entertaiment",
+				success: function(response) {
+					refreshNews("entertaiment_content", response);
+					showWait(strDiv, false);
+				}
+			});
+		}
+		
+		function load_tech_news() {
+			var strDiv = "tech_news";
+			showWait(strDiv, true);
+			$.getJSON( "http://localhost/ludala/rssController.php?rss=tech_news", function( data ) {
+			   refreshNews("tech_news_content", data);
+			   showWait(strDiv, false);
+			});
+		}
+		
+		function showWait(strDiv, showFlag) {
+		   var div = "#" + strDiv;
+		   
+	       if (showFlag) {
+			  $(div).hide();
+			  $("#pleaseWaitDiv").show();
+		   }  else {
+			  $("#pleaseWaitDiv").hide();
+			  $(div).show();
+		   }		   
+		}
+		
+		function refreshNews(strDiv, json) {
+		   var div = "#" + strDiv;
+		   if (json.Result == "OK") {
+			   var info = json.Info;
+			   $(div).html(gCompiled( {items : info}));
+			} else {
+			  alert(json.Message);
+			}
+		}
+		
+	</script>	
+		
+</head>
+<body>
+  <div id='content'>
+	<ul class="nav nav-tabs">
+		<li class="active"><a href="#news" data-toggle="tab">News</a></li>
+		<li><a href="#entertaiment" data-toggle="tab">Entertainment</a></li>
+		<li><a href="#tech_news" data-toggle="tab">Tech News</a></li>
+	</ul> 
+
+	<div id="tabContent" class="tab-content">
+	
+	   <div class="tab-pane fade in active" id="news">
+			<button type="button" class="btn btn-primary btn-lg" 
+					id="btnRefreshNews">Refresh News</button>
+			 <div id="news_content" class="mygrid-wrapper-div"></div>
+		</div>
+		
+	   <div class="tab-pane fade" id="entertaiment">
+			<button type="button" class="btn btn-primary btn-lg" 
+					id="btnRefreshEntertaiment">Refresh Entertaiment News</button>
+			 <div id="entertaiment_content" class="mygrid-wrapper-div"></div>
+	   </div>
+		
+	   <div class="tab-pane fade" id="tech_news">
+			<button type="button" class="btn btn-primary btn-lg" 
+				id="btnRefreshTechNews">Refresh Tech News</button>
+		<div id="tech_news_content" class="mygrid-wrapper-div"'></div>
+	</div>
+	
+	<script type="text/template" id="template">	
+		<div class="list-group">
+			<% _.each(items, function(item,key,arr) { %>
+				<a href="<%=item.link%>" class="list-group-item"><%=item.title%></a>
+			<% }); %>
+		</div>	 
+    </script>
+	<div id='pleaseWaitDiv'>
+		Loading, please wait...
+	</div>		
+</body>
+</html>
